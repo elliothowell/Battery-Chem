@@ -6,9 +6,9 @@ This code is the beginning step for numerical simulation, this is following
 steps laid out by Allen J. Bard and Larry R. Faulkner, accompanied work 
 produced by Lisa I. Stephens and Janine Mauzeroll. 
 
-The first step here is to produce code which solves a Cottrell experiment 
-laid out in appendix B.2 within Electrochemical Methods Fundamentals and 
-Applications
+The first step here is to produce code which solves a simulation of a cyclic 
+voltammorgram laid out in appendix B.5 within Electrochemical Methods 
+Fundamentals and Applications
 
 @author: Elliot
 """
@@ -98,26 +98,39 @@ iteration = np.arange(start = 1, stop = timeSteps, step = 1)
 ###############################################################################
 # Assignment Requirements
 """
-
-C_A(j,0) = C_Ai -> k = 0 iteration all boxes should contain a 1
-C_A(1,1) = 0 -> When k > 0 box 1 should contain 0
-C_A(j_max,0) = C_Ai -> Final box in model needs to be fixed at 1
-
-OK Actually reading through problem!
-    - Work through first 10 iterations (time steps?)
+Reqs:
     - l = 50 (timeSteps)
-    - D_M = 0.4
-    - Calc Z(k) for each iteration
-    - Calc Z_Cott(k) for each iteration
-    - Compare Z(k) and Z_Cott(k)
-    - Calculate X (chi) values corresponding to first 12 boxes (model size)
-    - Plot conc profiles f_A and f_B vs X (chi) for t/t_k = 0.2
-        - THIS IS JUST ASKING THAT you plot up to t = 0.2*t_k
-    - Derive functions describing f_A and f_B vs X (chi) and t/t_k 
-      from (5.2.13)
-        - In this case t/t_k = k/l
-    - Draw analytical curves on graphs of concentration profiles
-    - Comment on agreement between model and known solution
+    - D_M = 0.45
+    - a = 0.5
+    - diff coeff of oxidized and reduced forms equal
+    - cast dimensionless intrinsic rate param in terms of function psi 
+    which is defined in (6.5.5)
+    - carry out calculations for psi = 20, 1, and 0.1
+    - compare peak splitting in simulated voltammograms with values in table
+    6.5.2:
+        psi         dE_p (E_pa - E_pc) 
+                    (mV)
+        ------------------------------
+        20          61
+        7           63
+        6           64
+        5           65
+        4           66
+        3           68
+        2           72
+        1           84
+        0.75        92
+        0.50        105
+        0.35        121
+        0.25        141
+        0.10        212
+        ------------------------------
+    
+    upperLambda = k^o / (D_O^(1-a) * D_R^(a) * F * v)^1/2
+    D_O=D_R=D   = k^o / (D * F * v)^1/2
+    
+    (6.5.5) psi = upperLambda * pi^-1/2
+                = ((D_O/D_R)^(a/2) * k^o) / (pi * D_O * f * v)^1/2
 
 """
 
