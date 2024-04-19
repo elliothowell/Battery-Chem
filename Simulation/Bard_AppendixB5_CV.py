@@ -60,6 +60,10 @@ alpha = 0.5 # transfer coeff
 Area = 1 # electrode area, units = cm^2 (default = 0.1 cm^2)
 k_0 = 0.1 # rate constant, units = m/s (default = 0.1 m/s)
 
+# Potential Parameters!!!!
+Einorm = 1 #dimensionless starting potential
+Efnorm = -1 #dimensionless ending potential
+
 # One dimensional array for time
 # Not completely necessary but useful for visualizing time span
 tSize = 10 # AKA t_k # Length of time, units = seconds
@@ -89,11 +93,15 @@ Chi_array = np.full(shape = modelSize, fill_value = 0.0) # array for chi
 # these should all correspond to specific time step
 # for this assignment only Z, Z_Cott, t/tk are really used
 measured_I = np.full(shape = timeSteps, fill_value = 0.0) #current (Amps)
+Enorm = np.full(shape = timeSteps, fill_value = 0.0) #checking what potentials we go thru
 measured_Z = np.full(shape = timeSteps, fill_value = 0.0)#dimensionless current
 re_Cott = np.full(shape = timeSteps, fill_value = 0.0) #dimensionless current
 Z_Cott = np.full(shape = timeSteps, fill_value = 0.0) #dimensionless current
 t_over_tk = np.arange(start = 0.0, stop = 1, step = 1/timeSteps)
 iteration = np.arange(start = 1, stop = timeSteps, step = 1)
+
+
+testZ = np.full(shape = timeSteps, fill_value = 0.0)
 
 ###############################################################################
 # Assignment Requirements
@@ -102,6 +110,7 @@ Reqs:
     - l = 50 (timeSteps)
     - D_M = 0.45
     - a = 0.5
+    - Quasireversible!
     - diff coeff of oxidized and reduced forms equal
     - cast dimensionless intrinsic rate param in terms of function psi 
     which is defined in (6.5.5)
@@ -133,14 +142,46 @@ Reqs:
                 = ((D_O/D_R)^(a/2) * k^o) / (pi * D_O * f * v)^1/2
 
 """
+'''
+Some discussion on potential sweeps in modelling (Bard B.4.3):
+    - since this is a CV we want to have a cyclic process, so going from Einorm 
+    to Efnorm and then back to Einorm?
+    1V, to -1V, back to 1V
+        - first cycle is sweep from 1V to -1V, then using all of the data sweep
+        back from -1V to 1V
+    - using this we shouldn't have to change t/tk correct??
+    
+    
+
+'''
+
 
 # Starting the simulation
 
+### THIS SHOULD BE MOVED/ALTERED ###
+psi = 20
+psiConst = (psi * math.sqrt(math.pi * (Einorm - Efnorm)))
+
 for t in range(0, timeSteps):
     
-    # for each iteration just go ahead and calculate Z_cot
-    Z_Cott[t] = 1/((np.pi*((t+0.5)/timeSteps))**0.5)
-    
+    # this is basically the reversal step for potential change
+    if t == timeSteps/2:
+        Ehold = Einorm
+        Einorm = Efnorm
+        Efnorm = Ehold
+
+    # calculating what potential we at, going from Ei->Ef->ei
+    if t < timeSteps/2:
+        Enorm[t] = Einorm + (Efnorm - Einorm) * (t/((timeSteps-1)/2))
+        
+    else:
+        Enorm[t] = Einorm + (Efnorm - Einorm) * ((t-(timeSteps-1)/2)/((timeSteps-1)/2))
+        #print((t-(timeSteps-1)/2)/((timeSteps-1)/2))
+        
+    # current meas.
+    testZ[t] = psiConst * (math.exp(-alpha * Enorm[t]) - math.exp((1-alpha) * Enorm[t]))
+        
+    print(math.exp((1-alpha) * Enorm[t]))
     # instantaneous start only happens for t = 0
     if t == 0:
         # Instant conversion of bulk at electrode surface from A -> B
@@ -216,11 +257,9 @@ for t in range(0, timeSteps):
         measured_I[t] = ((n*F*Area*(Diff**0.5)*C_Ai)*(
             (f_A_array[1,t-1])*((D_MA*timeSteps)**0.5) / (tSize**0.5)))
         
-        re_Cott[t] = n*F*Area*C_Ai*(Diff**0.5)/(
-            (np.pi**0.5)*(sampleTime[t]**0.5))
 
 # Setting up array for Z/Z_Cott once simulation has finished
-R_array = measured_Z/Z_Cott
+#R_array = measured_Z/Z_Cott
 
 ###############################################################################
 # Plotting
@@ -228,70 +267,69 @@ R_array = measured_Z/Z_Cott
 # time point - tInterval/2
 
 # Setting warning in the event inputted values don't allow for the t/tk <=0.2
-if timeSteps > modelSize:
-    plotIndex = modelSize
-    print("Warning: the amount of time steps exceeds the size of the model ",
-          "and therefore will be the max plot amount.")
-else : 
-    plotIndex = np.where(t_over_tk <= 0.2)[-1][-1]
-print(plotIndex)
+# if timeSteps > modelSize:
+#     plotIndex = modelSize
+#     print("Warning: the amount of time steps exceeds the size of the model ",
+#           "and therefore will be the max plot amount.")
+# else : 
+#     plotIndex = np.where(t_over_tk <= 0.2)[-1][-1]
+# print(plotIndex)
 
 ## Plot of Z/Z_cot versus t/t_k
 plt.figure()
-plt.title("Plot of Z/$Z_{Cot}$ against normalized time (t/$t_{k}$) \n" +
-          " for the first ten iterations")
-plt.plot(t_over_tk[:10], R_array[:10], linewidth = 2, markersize = 5, 
+plt.title("Plot of Z against normalized time (t/$t_{k}$)")
+plt.plot(t_over_tk, testZ, linewidth = 2, markersize = 5, 
           marker = 'o')
 plt.xlabel('t/$t_{k}$')
-plt.ylabel('R (Z/$Z_{Cot}$)')
+plt.ylabel('Z')
 plt.show()
 
-## Plot of percent error between Z and Z_cot versus t/t_k
-plt.figure()
-plt.title("Plot of percent error between Z and $Z_{Cot}$ against " +
-          "normalized time (t/$t_{k}$) \n" +
-          " for the first ten iterations")
-plt.plot(t_over_tk[:10], 100*(measured_Z[:10]-Z_Cott[:10])/Z_Cott[:10], 
-         linewidth = 2, markersize = 5, 
-          marker = 'o')
-plt.xlabel('t/$t_{k}$')
-plt.ylabel('Percent Difference ((Z-$Z_{Cot}$)/$Z_{Cot}$)')
-plt.show()
+# ## Plot of percent error between Z and Z_cot versus t/t_k
+# plt.figure()
+# plt.title("Plot of percent error between Z and $Z_{Cot}$ against " +
+#           "normalized time (t/$t_{k}$) \n" +
+#           " for the first ten iterations")
+# plt.plot(t_over_tk[:10], 100*(measured_Z[:10]-Z_Cott[:10])/Z_Cott[:10], 
+#          linewidth = 2, markersize = 5, 
+#           marker = 'o')
+# plt.xlabel('t/$t_{k}$')
+# plt.ylabel('Percent Difference ((Z-$Z_{Cot}$)/$Z_{Cot}$)')
+# plt.show()
 
-## Plot of normalized concentrations (sim/analytical) vs Chi for t/t_k=0.2
-plt.figure()
-plt.title("Plot of $f_{A}$ and $f_{B}$ versus Chi ($\\chi$) for" + 
-          " t/$t_{k}$ = 0.2")
-plt.plot(Chi_array[:12] , 
-          f_A_array[:12, plotIndex], 
-          linewidth = 2, label = 'Simulated $f_{A}$')
-plt.scatter(Chi_array[:12] , 
-          f_A_erf[:12, plotIndex], label = 'Analytical $f_{A}$')
-plt.plot(Chi_array[:12] , 
-          f_B_array[:12, plotIndex] , 
-          linewidth = 2, label = 'Simulated $f_{B}$')
-plt.scatter(Chi_array[:12] , 
-          f_B_erf[:12, plotIndex], label = 'Analytical $f_{B}$')
-plt.xlabel('Chi ($\\chi$)')
-plt.ylabel('Normalized concentration')
-plt.legend()
-plt.show()
+# ## Plot of normalized concentrations (sim/analytical) vs Chi for t/t_k=0.2
+# plt.figure()
+# plt.title("Plot of $f_{A}$ and $f_{B}$ versus Chi ($\\chi$) for" + 
+#           " t/$t_{k}$ = 0.2")
+# plt.plot(Chi_array[:12] , 
+#           f_A_array[:12, plotIndex], 
+#           linewidth = 2, label = 'Simulated $f_{A}$')
+# plt.scatter(Chi_array[:12] , 
+#           f_A_erf[:12, plotIndex], label = 'Analytical $f_{A}$')
+# plt.plot(Chi_array[:12] , 
+#           f_B_array[:12, plotIndex] , 
+#           linewidth = 2, label = 'Simulated $f_{B}$')
+# plt.scatter(Chi_array[:12] , 
+#           f_B_erf[:12, plotIndex], label = 'Analytical $f_{B}$')
+# plt.xlabel('Chi ($\\chi$)')
+# plt.ylabel('Normalized concentration')
+# plt.legend()
+# plt.show()
 
-## Plot of percent errors for f_A and f_B (sim/analytical) vs Chi for t/t_k=0.2
-plt.figure()
-plt.title("Plot of $f_{A}$ and $f_{B}$ versus Chi ($\\chi$) for" + 
-          " t/$t_{k}$ = 0.2")
-plt.plot(Chi_array[:12] , 
-          100*(f_A_array[:12, plotIndex]-
-               f_A_erf[:12, plotIndex])/f_A_erf[:12, plotIndex], 
-          linewidth = 2, label = '($f_{A sim.}$-$f_{A anal.}$)/$f_{A anal.}$')
-plt.plot(Chi_array[:12] , 
-          100*(f_B_array[:12, plotIndex]-
-               f_B_erf[:12, plotIndex])/f_B_erf[:12, plotIndex], 
-          linewidth = 2, label = '($f_{B sim.}$-$f_{B anal.}$)/$f_{B anal.}$')
-plt.xlabel('Chi ($\\chi$)')
-plt.ylabel('Percent Difference (($f_{sim.}$-$f_{anal.}$)/$f_{anal.}$)')
-plt.legend()
-plt.show()
+# ## Plot of percent errors for f_A and f_B (sim/analytical) vs Chi for t/t_k=0.2
+# plt.figure()
+# plt.title("Plot of $f_{A}$ and $f_{B}$ versus Chi ($\\chi$) for" + 
+#           " t/$t_{k}$ = 0.2")
+# plt.plot(Chi_array[:12] , 
+#           100*(f_A_array[:12, plotIndex]-
+#                f_A_erf[:12, plotIndex])/f_A_erf[:12, plotIndex], 
+#           linewidth = 2, label = '($f_{A sim.}$-$f_{A anal.}$)/$f_{A anal.}$')
+# plt.plot(Chi_array[:12] , 
+#           100*(f_B_array[:12, plotIndex]-
+#                f_B_erf[:12, plotIndex])/f_B_erf[:12, plotIndex], 
+#           linewidth = 2, label = '($f_{B sim.}$-$f_{B anal.}$)/$f_{B anal.}$')
+# plt.xlabel('Chi ($\\chi$)')
+# plt.ylabel('Percent Difference (($f_{sim.}$-$f_{anal.}$)/$f_{anal.}$)')
+# plt.legend()
+# plt.show()
 
 ###############################################################################
