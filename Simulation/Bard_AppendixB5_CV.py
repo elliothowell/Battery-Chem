@@ -32,50 +32,43 @@ timeSteps = 50 # AKA l # Number of time steps
 
 # Model diffusion coefficient for A and B (can also define parameters of this)
 #D_MA = Diff*tInterval/(xInterval**0.5)
-D_MA = 0.40 # where D_M = D*dt/dx^2
-D_MB = 0.40
+D_MA = 0.45 # where D_M = D*dt/dx^2
+D_MB = 0.45
 
 # Initial concentrations for species A and species B (units of molar) and
 # other inherent parameters of redox system
 # Typical start will just be A = 1M and B = 0
-C_Ai = 1.0e-6
+C_Ai = 0.5
 if C_Ai == 0.0: #setting fractional concentrations of A and in the event A == 0
     f_Ai = 0.0  #then just set A to 0
 else: 
-    f_Ai = C_Ai/C_Ai # setting fractional concentrations of A
+    f_Ai = C_Ai # setting fractional concentrations of A
 
-C_Bi = 0.0
+C_Bi = 0.5
 if C_Bi == 0.0: #setting fractional concentrations of B and in the event B == 0
     f_Bi = 0.0  #then just set f_Bi to 0
+
+elif C_Bi == C_Ai:
+    f_Ai = 0.5
+    f_Bi = 0.5
+
 else:
-    f_Bi = C_Bi/C_Bi
+    f_Bi = 1-C_Ai
     
 # These are not needed for this assignment but will be useful later
-Diff = 1e-6 # diffusion coefficient for species A/B, units = cm^2/s
-n = 1 # number of electrons transferred in redox
 alpha = 0.5 # transfer coeff
 
-# Electrode parameters
-# Again not needed but saving for future iterations
-Area = 1 # electrode area, units = cm^2 (default = 0.1 cm^2)
-k_0 = 0.1 # rate constant, units = m/s (default = 0.1 m/s)
-
 # Potential Parameters!!!!
-Einorm = 1 #dimensionless starting potential
-Efnorm = -1 #dimensionless ending potential
+Einorm = 1.0 #dimensionless starting potential
+Efnorm = -1.0 #dimensionless ending potential
+
+scanRate = 10 #mV/s
 
 # One dimensional array for time
 # Not completely necessary but useful for visualizing time span
-tSize = 10 # AKA t_k # Length of time, units = seconds
-tInterval = tSize / timeSteps # delta t # time interval
-sampleTime = np.arange(start = 0.0, stop = tSize, step = tInterval)+tInterval/2
-
-# One dimensional array for the physical x-axis
-# yet again, not necessary but helps with visualization
-JMax = 4.2*(timeSteps**0.5) # useful for optimizing processing power
-xInterval = ((Diff * tSize) / (D_MA * timeSteps))**0.5 # delta x 
-xSize =  modelSize * xInterval # units = cm
-x = np.arange(start = 0.0, stop = xSize, step = xInterval) 
+tSize = abs(Einorm - Efnorm)/(scanRate/1000) # AKA t_k # Length of time, units = seconds
+del_t = tSize / timeSteps # delta t # time interval
+sampleTime = np.arange(start = 0.0, stop = tSize, step = del_t)+del_t/2
 
 # Setting arrays for A and B with initial values
 # using 2D array (time = columns, rows = x space)
@@ -159,107 +152,174 @@ Some discussion on potential sweeps in modelling (Bard B.4.3):
 # Starting the simulation
 
 ### THIS SHOULD BE MOVED/ALTERED ###
-psi = 20
-psiConst = (psi * math.sqrt(math.pi * (Einorm - Efnorm)))
+psi = 1
+
+## Values for non-normalized
+k0 = 0.1 # rate const m/s
+eta = Einorm
+kred_curr = k0 * math.exp((-alpha * F * eta)/(R * T))
+
+total_x = 0.1
+del_x = total_x / modelSize
+
+
+# This is just making sure the math will math, no imaginary numbers here
+if Einorm > Efnorm:    
+    psiConst = (psi * math.sqrt(math.pi * (Einorm - Efnorm)))
+else:
+    psiConst = (psi * math.sqrt(math.pi * (Efnorm - Einorm)))
+
+Zholder = 0.0
+
+testList1 = [0.0]*timeSteps
+testList2 = [0.0]*timeSteps
+
+dimRatA = [0.0] * timeSteps
+dimRatB = [0.0] * timeSteps
 
 for t in range(0, timeSteps):
-    
+
+    ### Just for potential calcs ###
+    ###########################################################################
     # this is basically the reversal step for potential change
-    if t == timeSteps/2:
+    if t == timeSteps // 2:
         Ehold = Einorm
         Einorm = Efnorm
         Efnorm = Ehold
 
     # calculating what potential we at, going from Ei->Ef->ei
-    if t < timeSteps/2:
+    if t < timeSteps // 2:
         Enorm[t] = Einorm + (Efnorm - Einorm) * (t/((timeSteps-1)/2))
         
     else:
         Enorm[t] = Einorm + (Efnorm - Einorm) * ((t-(timeSteps-1)/2)/((timeSteps-1)/2))
+    # Enorm[t] = Einorm + (Efnorm - Einorm) * (t/(timeSteps-1))
         #print((t-(timeSteps-1)/2)/((timeSteps-1)/2))
-        
-    # current meas.
-    testZ[t] = psiConst * (math.exp(-alpha * Enorm[t]) - math.exp((1-alpha) * Enorm[t]))
-        
-    print(math.exp((1-alpha) * Enorm[t]))
-    # instantaneous start only happens for t = 0
-    if t == 0:
-        # Instant conversion of bulk at electrode surface from A -> B
-        f_B_array[0, t] = f_A_array[0, t]
-        f_B_array_holder[0, t] = f_A_array_holder[0, t]
-        f_A_array[0,t] = 0
-        f_A_array_holder[0,t] = 0
+    ###########################################################################
 
-        # not req. but sanity check with provided resources
-        measured_I[t] = n*F*Area*(Diff**0.5)*C_Ai*(timeSteps**0.5)/(
-                        (tSize**0.5)*(D_MA**0.5))
-        
-        # calculate dimensionless current initial
-        measured_Z[t] = ((timeSteps/D_MA)**0.5)
+if f_Ai + f_Bi != 1:
+    print("WOW")
 
-        # not req. but sanity check with provided resources
-        re_Cott[t] = n*F*Area*C_Ai*(Diff**0.5)/(
-                     (np.pi**0.5)*(sampleTime[0]**0.5))
-        
-        #analytical results calculaton, can't divide by 0 so manual punch (t=0)
-        f_A_erf[0,t] = 0 # f_Ai * math.erf((0)/(2*((D_MA*t)**0.5)))
-        f_B_erf[0,t] = 1 #- (f_Ai * math.erf((0)/(2*((D_MA*t)**0.5))))
-        
-    else:
-        
-        # making sure array lines up with previous iteration to perform calcs
-        f_A_array[:,t] = f_A_array[:,t-1]
-        f_B_array[:,t] = f_B_array[:,t-1]
-        
-        # start cycling through boxes for each speciic time interval
-        for k in range(modelSize):
-            
-            # calculate analytical results
-            f_A_erf[k,t] = f_Ai * math.erf((k)/(2*((D_MA*t)**0.5)))
-            f_B_erf[k,t] = 1 - (f_Ai * math.erf((k)/(2*((D_MA*t)**0.5))))
-            
-            # Calculation of Chi only needs 1 iteration as doing it more would
-            # just take up computational power
-            if t == 1:
-                Chi_array[k] = (k)/((D_MA*timeSteps)**0.5)
-            
-            # Diffusion into the first box
-            if k == 0:
-                f_A_array_holder[k,t] = f_A_array[k,t] + D_MA*(
-                    f_A_array[k+1,t] - f_A_array[k,t])
-                f_B_array_holder[k,t] = f_B_array[k,t] + D_MB*(
-                    f_B_array[k+1,t] - f_B_array[k,t])
-            
-            # End boundary condition of C_A(j_max, 0) = C_Ai
-            elif k == modelSize-1:
-                f_A_array_holder[k] = f_Ai
-            
-            # Diffusion beyond the first box
-            else:
-                f_A_array_holder[k,t] = f_A_array[k,t] + D_MA*((
-                    f_A_array[k+1,t] - 2*f_A_array[k,t]) + f_A_array[k-1,t])
-                f_B_array_holder[k,t] = f_B_array[k,t] + D_MB*((
-                    f_B_array[k+1,t] - 2*f_B_array[k,t]) + f_B_array[k-1,t])
-        
-        # Replace values with newly calculated values of 
-        # fractional concentration
-        f_A_array[:,t] = f_A_array_holder[:,t]
-        f_B_array[:,t] = f_B_array_holder[:,t]
-        
-        # calculate dimensionless current due to changes
-        measured_Z[t] = ((timeSteps/D_MA)**0.5) * f_A_array_holder[0,t]
-        
-        # Again, immediate electrolysis of species A to B at surface
-        f_A_array[0,t] = 0
-        f_B_array[0,t] = f_Ai
-        
-        # Calculate the measured current due to change
-        measured_I[t] = ((n*F*Area*(Diff**0.5)*C_Ai)*(
-            (f_A_array[1,t-1])*((D_MA*timeSteps)**0.5) / (tSize**0.5)))
-        
+# time zero chem rxn
+dimRatA[0] = psiConst * math.exp(-alpha * Enorm[0]) 
+print(f_A_array[0,0])
+f_A_array[0, 0] = f_Ai - ( math.sqrt(D_MA/timeSteps) * dimRatA[0] * f_Ai)
+print(f_A_array[0,0])
+f_B_array[0, 0] = f_Bi + ( math.sqrt(D_MA/timeSteps) * dimRatA[0] * f_Ai)
 
-# Setting up array for Z/Z_Cott once simulation has finished
-#R_array = measured_Z/Z_Cott
+measured_I[0] = f_A_array[0, 0] - f_Ai
+
+for t in range(1, timeSteps):
+    
+    # if t == timeSteps // 2:
+    #     psiConst = -psiConst
+    
+    # This will be dtermining dimensionless rate constants for A and B respectively
+    dimRatA[t] = psiConst * math.exp(-alpha * Enorm[t]) 
+    dimRatB[t] = psiConst * math.exp((1-alpha) * Enorm[t]) 
+    
+    if t < timeSteps - 1:
+        dimRatA[t+1] = psiConst * math.exp(-alpha * Enorm[t+1]) 
+        dimRatB[t+1] = psiConst * math.exp((1-alpha) * Enorm[t+1]) 
+    
+    print("A: ", dimRatA[t])
+    print("B: ", dimRatB[t])
+    
+    # if on subsequent iterations we copy the previous array over to do work on it
+    if t > 0:
+        
+        f_A_array[:, t] = f_A_array[:, t-1]
+        f_B_array[:, t] = f_B_array[:, t-1]
+        # f_A_array_holder[:, t] = f_A_array[:, t-1]
+        # f_B_array_holder[:, t] = f_B_array[:, t-1]
+    
+    # This is testing conversion before diffusion, also have one after for trialing
+    # if t < timeSteps: 
+        # f_B_array[0, t] = 1/(math.exp(Enorm[t])+1)
+        # f_A_array[0, t] = (math.exp(Enorm[t]))/(1+math.exp(Enorm[t]))
+        
+        # f_B_array[0, t] = 1/(dimRatA[t] +1)
+        # f_A_array[0, t] = (dimRatB[t])/(1+dimRatB[t])
+        
+        # f_A_array[0, t] = f_A_array[0, t] + (D_MA * (f_A_array[1, t] - f_A_array[0, t])) + (measured_Z[t] * math.sqrt(D_MA / timeSteps))
+        # f_B_array[0, t] = f_B_array[0, t] + (D_MB * (f_B_array[1, t] - f_B_array[0, t])) - (measured_Z[t] * math.sqrt(D_MB / timeSteps))
+        
+        # f_A_array[0, t+1] = f_A_array[0, t] - ((t/timeSteps) * dimRatB * f_B_array[0, t])
+        # f_B_array[0, t+1] = f_B_array[0, t] + ((t/timeSteps) * dimRatA * f_A_array[0, t])
+    
+    # if t > 0 and t < timeSteps-1:
+    #     f_A_array_holder[0, t] = f_A_array[0, t] - ( math.sqrt(D_MA / timeSteps) * ((dimRatB[t] * f_B_array[0, t])))
+    #     f_B_array_holder[0, t] = f_B_array[0, t] + ( math.sqrt(D_MA / timeSteps) * ((dimRatA[t] * f_A_array[0, t])))
+       
+    #     print(f_A_array_holder[0, t] + f_B_array_holder[0, t])
+    
+    # two lists that have same dimension as timesteps (l) for troubleshooting
+    testList1[t] = (math.exp(-alpha*Enorm[t]))
+    testList2[t] = math.exp((1-alpha) * Enorm[t])
+    # print(Enorm[t])
+    
+    # measured_Z[t] = (dimRatA * f_A_array[0, t]) + (dimRatB * f_B_array[0, t])
+    # JMax = int(4.2*(t**0.5)) # useful for optimizing processing power
+    
+    # if t == 0:
+    #     JMax = 4
+
+    # Attempting change of species due to potential step
+        
+    ####
+    # SOLELY FOR DIFFUSION
+    # start cycling through boxes for each speciic time interval
+    ####
+    for j in range(0, modelSize):
+        # Calculation of Chi only needs 1 iteration as doing it more would
+        # just take up computational power
+        if t == 1:
+            Chi_array[j] = (j)/((D_MA*timeSteps)**0.5)
+            
+        # Diffusion into the first box
+        if j == 0:
+            f_A_array_holder[j,t] = f_A_array[j,t] + D_MA*(f_A_array[j+1,t] - f_A_array[j,t])
+            f_B_array_holder[j,t] = f_B_array[j,t] + D_MB*(f_B_array[j+1,t] - f_B_array[j,t])
+        
+        
+        #print(f_A_array_holder[j, t])
+        # # End boundary condition of C_A(j_max, 0) = C_Ai
+        
+        # elif j == modelSize-1:
+        # f_A_array_holder[j] = f_Ai
+        
+        elif j == modelSize-1:
+            f_A_array_holder[j,t] = f_Ai
+            f_B_array_holder[j,t] = f_Bi
+            
+        # Diffusion beyond the first box
+        else:
+            f_A_array_holder[j,t] = f_A_array[j,t] + D_MA*(f_A_array[j+1,t] - (2*f_A_array[j,t]) + f_A_array[j-1,t])
+            f_B_array_holder[j,t] = f_B_array[j,t] + D_MB*(f_B_array[j+1,t] - (2*f_B_array[j,t]) + f_B_array[j-1,t])
+            # print(D_MA*(f_A_array[j-1,t] - 2*f_A_array[j,t] + f_A_array[j+1,t]))
+    
+    # if t < timeSteps - 1:
+    #     measured_Z[t+1] = (dimRatA * f_A_array[0, t]) - (dimRatB * f_B_array[0, t])
+    
+    f_A_array[:,t] = f_A_array_holder[:,t]
+    f_B_array[:,t] = f_B_array_holder[:,t]
+    
+    #kred_curr = k0 * math.exp((-alpha * F * Enorm[t]) / (R*T))
+    # print(kred_curr)
+    # if t > 0 and t < timeSteps-1:
+    print(f_A_array[0, t])
+    f_A_array[0, t] = f_A_array[0, t] + D_MA*(f_A_array[1,t] - f_A_array[0,t]) - ( ( math.sqrt(D_MA/timeSteps) * dimRatA[t] * f_A_array[0, t-1] ) - ( math.sqrt(D_MA/timeSteps) * dimRatB[t] * f_B_array[0, t-1] ) )
+    print(f_A_array[0, t])
+    
+    print(f_B_array[0,t])
+    f_B_array[0, t] = f_B_array[0, t] + D_MB*(f_B_array[1,t] - f_B_array[0,t]) + ( ( math.sqrt(D_MA/timeSteps) * dimRatA[t] * f_A_array[0, t-1] ) - ( math.sqrt(D_MA/timeSteps) * dimRatB[t] * f_B_array[0, t-1] ) )
+    print(f_B_array[0,t])
+    
+    # if t > 0 and t < timeSteps-1:
+    measured_Z[t] = ( dimRatA[t] * f_A_array[0, t-1] ) - ( dimRatB[t] * f_B_array[0, t-1] )
+
+     
+    
 
 ###############################################################################
 # Plotting
@@ -277,11 +337,11 @@ for t in range(0, timeSteps):
 
 ## Plot of Z/Z_cot versus t/t_k
 plt.figure()
-plt.title("Plot of Z against normalized time (t/$t_{k}$)")
-plt.plot(t_over_tk, testZ, linewidth = 2, markersize = 5, 
+plt.plot(t_over_tk , f_A_array[0, :] , linewidth = 2, markersize = 5, 
           marker = 'o')
-plt.xlabel('t/$t_{k}$')
-plt.ylabel('Z')
+plt.plot(t_over_tk , f_B_array[0, :] , linewidth = 2, markersize = 5, 
+          marker = 'v')
+plt.plot(t_over_tk , measured_Z , linewidth = 2, markersize = 5)
 plt.show()
 
 # ## Plot of percent error between Z and Z_cot versus t/t_k
