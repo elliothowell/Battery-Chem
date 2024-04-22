@@ -42,11 +42,15 @@ Jox=[]
 Jred=[]
 J=[]
 #
+testList1 = []
+testList2 = []
+
 for k in range(1,l+1):
     kf= k0*math.exp(-alpha*f*eta[k-1])
     kb= k0*math.exp((1-alpha)*f*eta[k-1])
-    jox=-(kf*cO[k-1,1]-kb*cR[k-1,1])/(1+kf*dx/D+kb*dx/D) #different from bard
-    print(jox)
+    jox=-(kf*cO[k-1,1]-kb*cR[k-1,1])/(1+(kf*dx/D)+(kb*dx/D)) #different from bard
+    testList1.append(kf*cO[k-1,1]-kb*cR[k-1,1])
+    testList2.append((1+(kf*dx/D)+(kb*dx/D)))
     jred=-jox
     Jox.append(jox)
     Jred.append(jred)
@@ -61,8 +65,10 @@ for k in range(1,l+1):
     cR[k,0]= cR0
     J.append(-n*F*jox)
     for j in range(1,99):
-        cox= cO[k-1,j] + Dm*(cO[k-1, j+1]-2*cO[k-1,j]+cO[k-1,j-1])
-        cO[k,j]=cox
-        cred= cR[k-1,j] + Dm*(cR[k-1, j+1]-2*cR[k-1,j]+cR[k-1,j-1])
-        cR[k,j]=cred
-plt.plot(E,J)
+        cO[k,j]= cO[k-1,j] + Dm*(cO[k-1, j+1]-2*cO[k-1,j]+cO[k-1,j-1])
+        # cO[k,j]=cox
+        cR[k,j]= cR[k-1,j] + Dm*(cR[k-1, j+1]-2*cR[k-1,j]+cR[k-1,j-1])
+        # cR[k,j]=cred
+plt.plot(E,testList1)
+# plt.plot(E, cO[1:,0])
+# plt.plot(E, cR[1:,0])
