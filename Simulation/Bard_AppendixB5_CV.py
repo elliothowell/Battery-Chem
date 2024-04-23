@@ -29,6 +29,10 @@ f = F / ( R * T)
 # Input parameters of the system (initial params)
 
 modelSize = 10 #Size/number of boxes of the model
+'''
+Super interesting action here, when modelSize is decreased it becomes similar
+to a microelectrode, no issues with diffusion are present!
+'''
 timeSteps = 50 # AKA l # Number of time steps
 
 # Model diffusion coefficient for A and B (can also define parameters of this)
@@ -85,9 +89,8 @@ iteration = np.arange(start = 1, stop = timeSteps, step = 1)
 testZ = np.full(shape = timeSteps, fill_value = 0.0)
 
 ###############################################################################
-# Assignment Requirements
 """
-Reqs:
+Assignment Reqs:
     - l = 50 (timeSteps)
     - D_M = 0.45
     - a = 0.5
@@ -127,7 +130,7 @@ Reqs:
 # Starting the simulation
 
 ### THIS SHOULD BE MOVED/ALTERED ###
-psi = 1
+psi = 0.1
 
 # This is just making sure the math will math, no imaginary numbers here
 if Einorm > Efnorm:    
