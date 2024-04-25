@@ -13,6 +13,7 @@ Fundamentals and Applications
 @author: Elliot
 """
 import os
+from sys import exit
 import numpy as np
 import matplotlib.pyplot as plt
 import math
@@ -28,7 +29,10 @@ f = F / ( R * T)
 ###############################################################################
 # Input parameters of the system (initial params)
 
-modelSize = 10 #Size/number of boxes of the model
+modelSize = 50 #Size/number of boxes of the model
+if modelSize < 2:
+    print("Model size must be greater than 1!")
+    exit()
 '''
 Super interesting action here, when modelSize is decreased it becomes similar
 to a microelectrode, no issues with diffusion are present!
@@ -47,25 +51,22 @@ C_Ai = 1.0
 if C_Ai == 0.0: #setting fractional concentrations of A and in the event A == 0
     f_Ai = 0.0  #then just set A to 0
 else: 
-    f_Ai = C_Ai # setting fractional concentrations of A
+    f_Ai = C_Ai/C_Ai # setting fractional concentrations of A
 
 C_Bi = 0.0
 if C_Bi == 0.0: #setting fractional concentrations of B and in the event B == 0
     f_Bi = 0.0  #then just set f_Bi to 0
 
-elif C_Bi == C_Ai:
-    f_Ai = 0.5
-    f_Bi = 0.5
-
 else:
-    f_Bi = 1-C_Ai
+    f_Bi = C_Bi / (C_Ai + C_Bi)
+    f_Ai = 1 - f_Bi
     
 # These are not needed for this assignment but will be useful later
 alpha = 0.5 # transfer coeff
 
 # Potential Parameters
-Einorm = 1 #dimensionless starting potential
-Efnorm = -1 #dimensionless ending potential
+Einorm = 0.6 #dimensionless starting potential
+Efnorm = -0.6 #dimensionless ending potential
 
 # Setting arrays for A and B with initial values
 # using 2D array (time = columns, rows = x space)
@@ -83,10 +84,7 @@ Chi_array = np.full(shape = modelSize, fill_value = 0.0) # array for chi
 Enorm = np.full(shape = timeSteps, fill_value = 0.0) #checking what potentials we go thru
 measured_Z = np.full(shape = timeSteps, fill_value = 0.0)#dimensionless current
 t_over_tk = np.arange(start = 0.0, stop = 1, step = 1/timeSteps)
-iteration = np.arange(start = 1, stop = timeSteps, step = 1)
-
-
-testZ = np.full(shape = timeSteps, fill_value = 0.0)
+iteration = np.arange(start = 1, stop = timeSteps + 1, step = 1)
 
 ###############################################################################
 """
@@ -125,6 +123,13 @@ Assignment Reqs:
     (6.5.5) psi = upperLambda * pi^-1/2
                 = ((D_O/D_R)^(a/2) * k^o) / (pi * D_O * f * v)^1/2
 
+Using a computer, carry out simulations of cyclic voltammetry for a 
+quasireversible system. Let l = 50 and D_M = 0.45. Take a = 0.5 and let the 
+diffusion coefficients of the oxidized and reduced forms be equal. Cast your 
+dimensionless intrinsic rate parameter in terms of the function ф defined in 
+(6.5.5), and carry out calculations for ф = 20, 1, and 0.1. Compare the peak 
+splittings in your simulated voltammograms with the values in Table 6.5.2.
+
 """
 
 # Starting the simulation
@@ -133,13 +138,7 @@ Assignment Reqs:
 psi = 0.1
 
 # This is just making sure the math will math, no imaginary numbers here
-if Einorm > Efnorm:    
-    psiConst = (psi * math.sqrt(math.pi * (Einorm - Efnorm)))
-else:
-    psiConst = (psi * math.sqrt(math.pi * (Efnorm - Einorm)))
-
-testList1 = [0.0]*timeSteps
-testList2 = [0.0]*timeSteps
+psiConst = (psi * math.sqrt(math.pi * abs(Einorm - Efnorm)))
 
 for t in range(0, timeSteps):
 
@@ -162,11 +161,22 @@ for t in range(0, timeSteps):
 ###############################################################################
 """
 Working code for creating CV simulation
+
+Would like to make this a function... What do we need to punch in?
+ - timeSteps (l)
+ - modelSize (meshing)
+ - psi
+ - alpha
+ - Ei and Ef
+ - conc. of f_A and f_B
+ - 
+ Can also expand this to incorporate multiple cycles!
+ 
 """
 ###############################################################################
 for t in range(1, timeSteps+1):
     
-    # This will be dtermining dimensionless rate constants for A and B respectively
+    # This will be dtermining dimensionless rate constants for A and B
     dimRatA = psiConst * math.exp(-alpha * f * Enorm[t-1]) 
     dimRatB = psiConst * math.exp((1-alpha) * f * Enorm[t-1]) 
     
@@ -179,7 +189,8 @@ for t in range(1, timeSteps+1):
     f_A_hold = f_A_array[1, t-1] + curr
     f_B_hold = f_B_array[1, t-1] - curr
     
-    # ensuring that we don't go into negative spiral if conc is negative
+    # ensuring that we don't go into negative spiral if conc is negative 
+    # this is highly unlikely but a keeps code stable
     if f_A_hold < 0:
         f_A_hold = 0
     if f_B_hold < 0:
@@ -228,6 +239,7 @@ plt.figure()
 plt.plot(Enorm , measured_Z , linewidth = 2, markersize = 5)
 plt.show()
 
+print("peak splitting: ", int(1000 * (Enorm[np.where(measured_Z == max(measured_Z))[0][0]] - Enorm[np.where(measured_Z == min(measured_Z))[0][0]])), "mV")
 # ## Plot of percent error between Z and Z_cot versus t/t_k
 # plt.figure()
 # plt.title("Plot of percent error between Z and $Z_{Cot}$ against " +
