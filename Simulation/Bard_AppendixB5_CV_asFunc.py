@@ -2,13 +2,7 @@
 """
 Created on Wed Mar 20 11:05:10 2024
 
-This code is the beginning step for numerical simulation, this is following 
-steps laid out by Allen J. Bard and Larry R. Faulkner, accompanied work 
-produced by Lisa I. Stephens and Janine Mauzeroll. 
-
-The first step here is to produce code which solves a simulation of a cyclic 
-voltammorgram laid out in appendix B.5 within Electrochemical Methods 
-Fundamentals and Applications
+Cyclic voltammetry simulation for Chem 577: Electrochemistry
 
 @author: Elliot
 """
@@ -17,10 +11,6 @@ from sys import exit
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-
-###############################################################################
-
-
 ###############################################################################
 """
 Assignment Reqs:
@@ -122,10 +112,10 @@ def CV_Sim(psi, timeSteps = 50, modelSize = 50, alpha = 0.5,
 
     # Setting arrays for A and B with initial values
     # using 2D array (time = columns, rows = x space)
-    f_A_array = np.full(shape = (modelSize, timeSteps+1), fill_value = f_Ai) # 
+    f_A_array = np.full(shape = (modelSize, timeSteps+1), fill_value = f_Ai)
     f_B_array = np.full(shape = (modelSize, timeSteps+1), fill_value = f_Bi)
-    f_A_hold = 0.0
-    f_B_hold = 0.0    
+    f_A_hold = 0.0 # holder for A conc.
+    f_B_hold = 0.0 # holder for B conc.
     
     # Arrays which are looking at time/x-space from electrode to end of meshing
     Chi_array = np.full(shape = modelSize, fill_value = 0.0) # array for chi
@@ -136,9 +126,10 @@ def CV_Sim(psi, timeSteps = 50, modelSize = 50, alpha = 0.5,
     Enorm = np.full(shape = timeSteps, fill_value = 0.0) #checking what potentials we go thru
     measured_Z = np.full(shape = timeSteps, fill_value = 0.0)#dimensionless current
     t_over_tk = np.arange(start = 0.0, stop = 1, step = 1/timeSteps) # dimensionless time
-    iteration = np.arange(start = 1, stop = timeSteps + 1, step = 1) # list of iterations, not explicitely used but can be useful
+    iteration = np.arange(start = 1, stop = timeSteps + 1, step = 1) # list of iterations, not explicitly used but can be useful
     ###########################################################################
     
+    # setting up an array of potential values give Ei and Ef
     for t in range(0, timeSteps):
 
         ### Just for potential calcs ###
@@ -159,8 +150,9 @@ def CV_Sim(psi, timeSteps = 50, modelSize = 50, alpha = 0.5,
         #######################################################################
     
     # This is just making sure the math will math, no imaginary numbers here
-    psiConst = (psi * math.sqrt(math.pi * abs(Einorm - Efnorm)))
+    psiConst = (psi * math.sqrt(math.pi * f * abs(Einorm - Efnorm)))
     
+    # Start of sim! Starts at 1 as we reference previous iterations
     for t in range(1, timeSteps+1):
         
         # This will be dtermining dimensionless rate constants for A and B
@@ -177,7 +169,7 @@ def CV_Sim(psi, timeSteps = 50, modelSize = 50, alpha = 0.5,
         f_B_hold = f_B_array[1, t-1] - curr
         
         # ensuring that we don't go into negative spiral if conc is negative 
-        # this is highly unlikely but a keeps code stable
+        # this is highly unlikely but keeps code stable
         if f_A_hold < 0:
             f_A_hold = 0
         if f_B_hold < 0:
@@ -192,7 +184,7 @@ def CV_Sim(psi, timeSteps = 50, modelSize = 50, alpha = 0.5,
             
         ####
         # SOLELY FOR DIFFUSION
-        # start cycling through boxes for each speciic time interval
+        # start cycling through boxes for each specific time interval
         ####
         for j in range(1, modelSize-1):
             
@@ -213,17 +205,15 @@ def CV_Sim(psi, timeSteps = 50, modelSize = 50, alpha = 0.5,
                                       - (2*f_B_array[j,t-1]) 
                                       + f_B_array[j-1,t-1]))
         
-        # Calculation of peak splitting based off max and min current response
-        # Psi == 1 is different as it was picking peak too far away, brute manual override...
-        if psi == 1:
-            peakSplit = int(1000 * (Enorm[np.where(measured_Z == max(measured_Z))[0][0]] 
-                                    - Enorm[np.where(measured_Z == min(measured_Z))[0][0] - 1]))
-        else:   
-            peakSplit = int(1000 * (Enorm[np.where(measured_Z == max(measured_Z))[0][0]] 
-                                    - Enorm[np.where(measured_Z == min(measured_Z))[0][0]]))
+        # Calculation of peak splitting based off max and min current response  
+        peakSplit = int(1000 * (Enorm[np.where(measured_Z == max(measured_Z))[0][0]] 
+                                - Enorm[np.where(measured_Z == min(measured_Z))[0][0]]))
+        Epa = 1000 * Enorm[np.where(measured_Z == max(measured_Z))[0][0]]
+        Epc = 1000 * Enorm[np.where(measured_Z == min(measured_Z))[0][0]]
             
     # want to return in order of E, Z, t_tk, f_A, f_B
-    return Enorm, measured_Z, t_over_tk, Chi_array, f_A_array[:, :-1], f_B_array[:, :-1], peakSplit
+    return Enorm, measured_Z, t_over_tk, Chi_array, f_A_array[:, :-1], f_B_array[:, :-1], peakSplit, Epa, Epc
+
 ###############################################################################
 """
 When calling output of function potisions are as follows:
@@ -234,6 +224,8 @@ When calling output of function potisions are as follows:
     [4]: Fractional concentration of species A with size [distance, time]
     [5]: Fractional concentration of species B with size [distance, time]
     [6]: Peak splitting based off of min and max current values, when resolution is low this is unreliable
+    [7]: Anodic peak potential
+    [8]: Cathodic peak potential
 
 CV_Sim(psi, timeSteps, modelSize, alpha, Ei, Ef, c_Ai, c_Bi)
 """  
@@ -243,98 +235,80 @@ ef = -0.2 # ending potential
 ms = 50 # model size / meshing (smaller = microelectrode actions)
 
 # Creating arrays for when ps = 20, 1, and 0.2
-psi20 = CV_Sim(psi = 20, modelSize = ms, timeSteps = 50, Ei = 0.15, Ef = -0.2)
-print(psi20[-1])
-psi1 = CV_Sim(psi = 1, modelSize = ms, Ei= 0.15, Ef= -0.2)
-print(psi1[-1])
-psi0_1 = CV_Sim(psi = 0.1, modelSize = ms, Ei= 0.5, Ef= -0.5) 
-print(psi0_1[-1])
+psi20 = CV_Sim(psi = 20, modelSize = ms, Ei = 0.15, Ef = -0.2)
+# psi20_500 = CV_Sim(psi = 20, modelSize = ms, timeSteps = 500, Ei = 0.15, Ef = -0.2)
+print(psi20[-3])
+psi1 = CV_Sim(psi = 1, modelSize = ms, Ei= 0.2, Ef= -0.2)
+print(psi1[-3])
+psi0_1 = CV_Sim(psi = 0.1, modelSize = ms, Ei= 0.3, Ef= -0.4) 
+print(psi0_1[-3])
 microElec = CV_Sim(psi = 1, modelSize = 3, timeSteps = 500, Ei= 0.5, Ef= -0.5) 
 ###############################################################################
 """
 Block for creating plots of the data
+
+Unicode characters:
+    u03A8 = psi
+    u03B1 = alpha
 """
+c1 = 'midnightblue'
+c2 = 'coral'
+c3 = 'seagreen'
+saveLoc = '/Users/elliothowell/SynologyDrive/Classes/W2024/Chem 577 - Electrochemistry/Final/'
 ###############################################################################
 
 ## Plot of CV for psi 20 where max and min current responses are circled
 psi20MaxCurr_index = np.where(psi20[1] == max(psi20[1]))
 psi20MinCurr_index = np.where(psi20[1] == min(psi20[1]))
 plt.figure()
-plt.title("CV for when Psi = 20 for the range E = " + str(max(psi20[0])) + " to " + str(round(min(psi20[0]), 1)))
-plt.plot(psi20[0], psi20[1] , linewidth = 2, markersize = 5)
+plt.title("CV for when \u03A8 = 20 for the range E = " + str(max(psi20[0])) + " to " + str(round(min(psi20[0]), 1)))
+plt.plot(psi20[0], psi20[1] , linewidth = 2, markersize = 5, color = c1)
+# plt.plot(psi20_500[0], psi20_500[1] , linewidth = 2, markersize = 5, label = "500")
 plt.scatter(psi20[0][psi20MaxCurr_index], psi20[1][psi20MaxCurr_index], 
-            facecolors = 'none', edgecolors= 'r', s = 100, label = "Max Current")
+            facecolors = 'none', edgecolors= c2, s = 100, label = "Max Current")
 plt.scatter(psi20[0][psi20MinCurr_index], psi20[1][psi20MinCurr_index], 
-            facecolors = 'none', edgecolors= 'b', s = 100, label = "Minimum Current")
+            facecolors = 'none', edgecolors= c3, s = 100, label = "Minimum Current")
 plt.xlabel("Potential (V)")
 plt.ylabel("Dimensionless Current (Z)")
 plt.legend()
-plt.show()
+plt.savefig(saveLoc + 'psi20.tif', dpi = 200)
 
 ## Plot of CV for psi 1 where max and min current responses are circled
 psi1MaxCurr_index = np.where(psi1[1] == max(psi1[1]))
-psi1MinCurr_index = np.where(psi1[1] == min(psi1[1]))[0][0] - 1
+psi1MinCurr_index = np.where(psi1[1] == min(psi1[1]))[0][0] 
 plt.figure()
-plt.title("CV for when Psi = 1 for the range E = " + str(max(psi1[0])) + " to " + str(round(min(psi1[0]), 1)))
-plt.plot(psi1[0], psi1[1] , linewidth = 2, markersize = 5)
+plt.title("CV for when \u03A8 = 1 for the range E = " + str(max(psi1[0])) + " to " + str(round(min(psi1[0]), 1)))
+plt.plot(psi1[0], psi1[1] , linewidth = 2, markersize = 5, color = c1)
 plt.scatter(psi1[0][psi1MaxCurr_index], psi1[1][psi1MaxCurr_index], 
-            facecolors = 'none', edgecolors= 'r', s = 100, label = "Max Current")
+            facecolors = 'none', edgecolors= c2, s = 100, label = "Max Current")
 plt.scatter(psi1[0][psi1MinCurr_index], psi1[1][psi1MinCurr_index], 
-            facecolors = 'none', edgecolors= 'b', s = 100, label = "Minimum Current")
+            facecolors = 'none', edgecolors= c3, s = 100, label = "Minimum Current")
 plt.xlabel("Potential (V)")
 plt.ylabel("Dimensionless Current (Z)")
 plt.legend()
-plt.show()
+plt.savefig(saveLoc + 'psi1.tif', dpi = 200)
 
 ## Plot of CV for psi 0.11 where max and min current responses are circled
 psi0_1MaxCurr_index = np.where(psi0_1[1] == max(psi0_1[1]))
 psi0_1MinCurr_index = np.where(psi0_1[1] == min(psi0_1[1]))
 plt.figure()
-plt.title("CV for when Psi = 0.1 for the range E = " + str(max(psi0_1[0])) + " to " + str(round(min(psi0_1[0]), 1)))
-plt.plot(psi0_1[0], psi0_1[1] , linewidth = 2, markersize = 5)
+plt.title("CV for when \u03A8 = 0.1 for the range E = " + str(max(psi0_1[0])) + " to " + str(round(min(psi0_1[0]), 1)))
+plt.plot(psi0_1[0], psi0_1[1] , linewidth = 2, markersize = 5, color = c1)
 plt.scatter(psi0_1[0][psi0_1MaxCurr_index], psi0_1[1][psi0_1MaxCurr_index], 
-            facecolors = 'none', edgecolors= 'r', s = 100, label = "Max Current")
+            facecolors = 'none', edgecolors= c2, s = 100, label = "Max Current")
 plt.scatter(psi0_1[0][psi0_1MinCurr_index], psi0_1[1][psi0_1MinCurr_index], 
-            facecolors = 'none', edgecolors= 'b', s = 100, label = "Minimum Current")
+            facecolors = 'none', edgecolors= c3, s = 100, label = "Minimum Current")
 plt.xlabel("Potential (V)")
 plt.ylabel("Dimensionless Current (Z)")
 plt.legend()
-plt.show()
+plt.savefig(saveLoc + 'psi0_1.tif', dpi = 200)
 
+# Plot for displaying microelectrode behaviour! 
 plt.figure()
 plt.title("CV for Microelectrode behaviour")
-plt.plot(microElec[0], microElec[1] , linewidth = 2, markersize = 5)
-
-# print("peak splitting: ", int(1000 * (Enorm[np.where(measured_Z == max(measured_Z))[0][0]] - Enorm[np.where(measured_Z == min(measured_Z))[0][0]])), "mV")
-# ## Plot of percent error between Z and Z_cot versus t/t_k
-# plt.figure()
-# plt.title("Plot of percent error between Z and $Z_{Cot}$ against " +
-#           "normalized time (t/$t_{k}$) \n" +
-#           " for the first ten iterations")
-# plt.plot(t_over_tk[:10], 100*(measured_Z[:10]-Z_Cott[:10])/Z_Cott[:10], 
-#          linewidth = 2, markersize = 5, 
-#           marker = 'o')
-# plt.xlabel('t/$t_{k}$')
-# plt.ylabel('Percent Difference ((Z-$Z_{Cot}$)/$Z_{Cot}$)')
-# plt.show()
-
-# ## Plot of normalized concentrations (sim/analytical) vs Chi for t/t_k=0.2
-# plt.figure()
-# plt.title("Plot of $f_{A}$ and $f_{B}$ versus Chi ($\\chi$) for" + 
-#           " t/$t_{k}$ = 0.2")
-# plt.plot(Chi_array[:12] , 
-#           f_A_array[:12, plotIndex], 
-#           linewidth = 2, label = 'Simulated $f_{A}$')
-# plt.scatter(Chi_array[:12] , 
-#           f_A_erf[:12, plotIndex], label = 'Analytical $f_{A}$')
-# plt.plot(Chi_array[:12] , 
-#           f_B_array[:12, plotIndex] , 
-#           linewidth = 2, label = 'Simulated $f_{B}$')
-# plt.scatter(Chi_array[:12] , 
-#           f_B_erf[:12, plotIndex], label = 'Analytical $f_{B}$')
-# plt.xlabel('Chi ($\\chi$)')
-# plt.ylabel('Normalized concentration')
-# plt.legend()
-# plt.show()
+plt.plot(microElec[0], microElec[1] , linewidth = 2, markersize = 5, color = c1)
+plt.xlabel("Potential (V)")
+plt.ylabel("Dimensionless Current (Z)")
+plt.savefig(saveLoc + 'microElec.tif', dpi = 200)
 
 ###############################################################################
