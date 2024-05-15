@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 
 # # Folder path containing the .mpt files ** windows **
-folder_path = r'C:\Users\Elliot\SynologyDrive\Research - Elliot Howell\Durbis CV Measurements\DCM Blk'
+folder_path = r'C:\Users\Elliot\SynologyDrive\Research - Elliot Howell\Durbis CV Measurements\TPB-OMe\DCM\To Use\vsFc'
 # # Folder path containing the .mpt files ** mac **
 #folder_path = r'/Users/elliothowell/SynologyDrive/Research - Elliot Howell/UQAM - Battery/LiSbF6 Salt/15-02-2024 Blank ECDMC/Bottle A'
 
@@ -28,6 +28,7 @@ analyte = input("And what is the analyte of interest?\n")
 fcCond = input("Do you want to compare potential to Fc? (Y = Yes / N = No)\n")
 
 if fcCond == 'Y':
+    refElec = "Fc/$Fc^+$"
     fcHalf = input("Ferrocene half potential?\n")
     fcHalf = float(fcHalf)
 
