@@ -56,6 +56,6 @@ def read_file(files): # NEed to define a file to read first
     
     return dataTemp, tempHeader, dataRaw
 
-files=[r"/Users/elliothowell/SynologyDrive/Research - Elliot Howell/UQAM - Battery/Half Cells/2024-05-06_LiSbF6_LFP_HalfCells/353EH1/353EH1_FullCycling_01_GCPL_C02.txt"]
-data, header, raw=read_file(files)
+#files=[r"/Users/elliothowell/SynologyDrive/Research - Elliot Howell/UQAM - Battery/Half Cells/2024-05-06_LiSbF6_LFP_HalfCells/353EH1/353EH1_FullCycling_01_GCPL_C02.txt"]
+#data, header, raw=read_file(files)
 

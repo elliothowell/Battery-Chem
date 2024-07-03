@@ -14,7 +14,7 @@ import numpy as np
 import scipy.signal as ss
 from General_txt_file_reader import read_file
 
-os.chdir("/Users/elliothowell/SynologyDrive/Research - Elliot Howell/UQAM - Battery/Half Cells/2024-05-06_LiSbF6_LFP_HalfCells/353EH1/")
+os.chdir(r"C:\Users\Elliot\SynologyDrive\Research - Elliot Howell\UQAM - Battery\Coin Cells\2024-05-06_LiSbF6_LFP_HalfCells\353EH1\\")
 
 Cov10_353EH1 = read_file([r"353EH1_FullCycling_01_GCPL_C02.txt"])
 
@@ -55,7 +55,7 @@ plt.ylabel('Voltage (V)')
 xChg = Cov10_353EH1[0][[Cov10_353EH1[0][:,0] == Cov10_353EH1[0][:,1]][0],22]
 yChg = Cov10_353EH1[0][[Cov10_353EH1[0][:,0] == Cov10_353EH1[0][:,1]][0],11]
 
-plt.scatter(xChg, yChg, label = 'testing')
+plt.plot(xChg, yChg, label = 'testing')
     
 plt.show()
 
