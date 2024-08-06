@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 
 # # Folder path containing the .mpt files ** windows **
-folder_path = r'C:\Users\Elliot\SynologyDrive\Research - Elliot Howell\Durbis CV Measurements\TPB-OMe\DCM\To Use\vsFc'
+folder_path = r'C:\Users\Elliot\SynologyDrive\Research - Elliot Howell\Durbis CV Measurements\0 - To use\DCM Solvent\8-TC-TPA\ads'
 # # Folder path containing the .mpt files ** mac **
 #folder_path = r'/Users/elliothowell/SynologyDrive/Research - Elliot Howell/UQAM - Battery/LiSbF6 Salt/15-02-2024 Blank ECDMC/Bottle A'
 
@@ -84,7 +84,7 @@ for file_name in txt_files:
     file_name_list = file_name.split(sep = '_')
     
     #plot of each rep
-    for i in range(len(repList)):
+    for i in range(len(repList) - 1):
         #if i == 0:
         #    continue
         if fcCond =='Y':

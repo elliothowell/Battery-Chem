@@ -9,7 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import numpy as np
-from scipy.signal import savgol_filter, find_peaks
+from scipy.signal import savgol_filter
 
 def apply_savgol_filter(data, window_length=2, polyorder=1):
     """ Apply Savitzky-Golay filter to smooth the data. """
@@ -42,8 +42,8 @@ def extract_cycles(data):
             cyclicEnds.append(i+1)
         else:
             continue
-        
-    if len(cyclicStarts) < 3:
+
+    if len(cyclicStarts) < 2:
         cyclicStarts = []
         cyclicEnds = []
         cycleNum = 1
@@ -62,7 +62,7 @@ def extract_cycles(data):
     cycles = []
     for i in range(0, len(cyclicStarts)):
         cycles.append(data.iloc[cyclicStarts[i]:cyclicEnds[i]])
-        # print(cyclicStarts[i])
+        #print(cyclicStarts[i])
         
     return cycles
 
@@ -72,14 +72,18 @@ def extract_last_cycle(data):
         return cycles[-1]
     return None
 
-def plot_and_save_cycles(folder_path, plot_all_cycles, plot_only_with_blanks, save_figures):
-    figures_folder = os.path.join(folder_path, 'figures')
-    if save_figures and not os.path.exists(figures_folder):
-        os.makedirs(figures_folder)
+def plot_and_save_cycles(folder_path, plot_all_cycles, fc_potential, save_figures):
+    # figures_folder = os.path.join(folder_path, 'figures')
+    # if save_figures and not os.path.exists(figures_folder):
+    #     os.makedirs(figures_folder)
     
     last_cycle_folder = os.path.join(folder_path, 'lastCycles')
     if not os.path.exists(last_cycle_folder):
         os.makedirs(last_cycle_folder)
+    
+    fc_folder = os.path.join(folder_path, 'fc_figures')
+    if not os.path.exists(fc_folder):
+        os.makedirs(fc_folder)
     
     csv_files = [f for f in os.listdir(folder_path) if f.endswith('.csv')]
     
@@ -88,9 +92,6 @@ def plot_and_save_cycles(folder_path, plot_all_cycles, plot_only_with_blanks, sa
         parts[1] = 'post' + parts[1]
         blank_file_name_pattern = '_'.join(parts[:4]) + '_'
         blank_files = [f for f in csv_files if f.startswith(blank_file_name_pattern)]
-        
-        if plot_only_with_blanks and not blank_files:
-            continue  # Skip this file if no associated blank file is found
         
         file_path = os.path.join(folder_path, file)
         data = pd.read_csv(file_path)
@@ -110,31 +111,38 @@ def plot_and_save_cycles(folder_path, plot_all_cycles, plot_only_with_blanks, sa
         num = 1
         for cycle in cycles:
             smoothed_current = (1*10**6) * apply_savgol_filter(cycle['WE.Current (A)'])
-            plt.plot(cycle['Potential applied (V)'], smoothed_current, label='Cycle ' + str(num), alpha=0.5)
+            potential_vsFc = cycle['Potential applied (V)'] - fc_potential
+            if plot_all_cycles:    
+                plt.plot(potential_vsFc, smoothed_current, label='Cycle ' + str(num), alpha=0.5)
+            else:
+                plt.plot(potential_vsFc, smoothed_current, alpha=0.5)
             num += 1
         
-        if blank_files:
-            blank_data = pd.read_csv(os.path.join(folder_path, blank_files[0]))
-            last_blank_cycle = extract_last_cycle(blank_data)
-            if last_blank_cycle is not None:
-                smoothed_current_blank = (1*10**6) * apply_savgol_filter(last_blank_cycle['WE.Current (A)'])
-                plt.plot(last_blank_cycle['Potential applied (V)'], smoothed_current_blank, label='Blank Last Cycle', linestyle='--', color='red')
+        # if blank_files:
+        #     blank_data = pd.read_csv(os.path.join(folder_path, blank_files[0]))
+        #     last_blank_cycle = extract_last_cycle(blank_data)
+        #     if last_blank_cycle is not None:
+        #         smoothed_current_blank = (1*10**6) * apply_savgol_filter(last_blank_cycle['WE.Current (A)'])
+        #         plt.plot(last_blank_cycle['Potential applied (V)'], smoothed_current_blank, label='Blank Last Cycle', linestyle='--', color='red')
         
-        plt.xlabel('Potential applied (V)')
+        plt.xlabel('Potential applied (V vs. Fc/$Fc^+$)')
         plt.ylabel('Current ($\mu$A)')
         plt.title(f'{"All Cycles" if plot_all_cycles else "Last Cycle"} with Last Blank Cycle for {file}')
-        plt.legend()
+        if plot_all_cycles:
+            plt.legend()
         if save_figures:
-            plt.savefig(os.path.join(figures_folder, f'{"All_Cycles" if plot_all_cycles else "Last_Cycle"}_with_Last_Blank_{file}.png'))
+            plt.savefig(os.path.join(fc_folder, f'{"All_Cycles" if plot_all_cycles else "Last_Cycle"}_versus_Fc_{file}.png'))
         plt.show()
 
 # Usage
-folder_path = r'C:\Users\Elliot\SynologyDrive\Research - Elliot Howell\Durbis CV Measurements\0 - To use\11-MPTPA'
+folder_path = r'C:\Users\Elliot\SynologyDrive\Research - Elliot Howell\Durbis CV Measurements\0 - To use\ACN Solvent\7-TDPA-TPA'
 user_input_cycles = input("Plot all cycles? (y/n): ").strip().lower()
 plot_all_cycles = True if user_input_cycles == 'y' else False
-user_input_blanks = input("Plot only if blank is associated? (y/n): ").strip().lower()
-plot_only_with_blanks = True if user_input_blanks == 'y' else False
+# user_input_blanks = input("Plot only if blank is associated? (y/n): ").strip().lower()
+# plot_only_with_blanks = True if user_input_blanks == 'y' else False
 user_input_save = input("Save figures? (y/n): ").strip().lower()
 save_figures = True if user_input_save == 'y' else False
+user_input_FcPot = float(input("Ferrocene Potential: "))
+fc_potential = user_input_FcPot if user_input_FcPot != 0 else 0.00
 
-plot_and_save_cycles(folder_path, plot_all_cycles, plot_only_with_blanks, save_figures)
+plot_and_save_cycles(folder_path, plot_all_cycles, fc_potential, save_figures)

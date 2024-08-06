@@ -33,10 +33,13 @@ def plot_battery_data(file_path):
     plt.title('Time vs Ewe and Current')
     plt.show()
 
-    # Plot 2: Ewe/V vs Q charge/discharge
+# Plot 2: Ewe/V vs Q charge/discharge without connecting cycles
     plt.figure()
-    plt.plot(charging_data['Q charge/mA.h'], charging_data['Ewe/V'], 'r-', label='Charge')
-    plt.plot(discharging_data['Q discharge/mA.h'], discharging_data['Ewe/V'], 'b-', label='Discharge')
+    for cycle, group in charging_data.groupby('cycle number'):
+        plt.plot(group['Q charge/mA.h'], group['Ewe/V'], label=f'Cycle {cycle}')
+    for cycle, group in discharging_data.groupby('cycle number'):
+        plt.plot(group['Q discharge/mA.h'], group['Ewe/V'], label=f'Cycle {cycle}')
+    
     plt.xlabel('Capacity (mA.h)')
     plt.ylabel('Ewe (V)')
     plt.title('Ewe vs Capacity')
@@ -57,5 +60,5 @@ def plot_battery_data(file_path):
     plt.show()
 
 # Example usage
-file_path = 'C:/Users/Elliot/SynologyDrive/Research - Elliot Howell/UQAM - Battery/Coin Cells/2024-05-06_LiSbF6_LFP_HalfCells/353EH1/353EH1_FullCycling_01_GCPL_C02.txt'
+file_path = 'C:/Users/Elliot/SynologyDrive/Research - Elliot Howell/UQAM - Battery/Coin Cells/2024-05-06_LiSbF6_LFP_HalfCells/353EH1/353EH1_FullCycling_06_GCPL_C02.txt'
 plot_battery_data(file_path)
