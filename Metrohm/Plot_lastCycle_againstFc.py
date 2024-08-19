@@ -125,9 +125,10 @@ def plot_and_save_cycles(folder_path, plot_all_cycles, fc_potential, save_figure
         #         smoothed_current_blank = (1*10**6) * apply_savgol_filter(last_blank_cycle['WE.Current (A)'])
         #         plt.plot(last_blank_cycle['Potential applied (V)'], smoothed_current_blank, label='Blank Last Cycle', linestyle='--', color='red')
         
+        # plt.xticks(np.arange(min(potential_vsFc), max(potential_vsFc) , step = 0.25))
         plt.xlabel('Potential applied (V vs. Fc/$Fc^+$)')
         plt.ylabel('Current ($\mu$A)')
-        plt.title(f'{"All Cycles" if plot_all_cycles else "Last Cycle"} with Last Blank Cycle for {file}')
+        plt.title(f'{"All Cycles" if plot_all_cycles else "Last Cycle"} versus Ferrocene for {file}')
         if plot_all_cycles:
             plt.legend()
         if save_figures:
@@ -135,7 +136,7 @@ def plot_and_save_cycles(folder_path, plot_all_cycles, fc_potential, save_figure
         plt.show()
 
 # Usage
-folder_path = r'C:\Users\Elliot\SynologyDrive\Research - Elliot Howell\Durbis CV Measurements\0 - To use\ACN Solvent\7-TDPA-TPA'
+folder_path = r'C:\Users\Elliot\SynologyDrive\Research - Elliot Howell\Durbis CV Measurements\0 - To use\DCM Solvent\14-PTH'
 user_input_cycles = input("Plot all cycles? (y/n): ").strip().lower()
 plot_all_cycles = True if user_input_cycles == 'y' else False
 # user_input_blanks = input("Plot only if blank is associated? (y/n): ").strip().lower()
