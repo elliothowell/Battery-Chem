@@ -11,8 +11,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import matplotlib.colors as colors
+from matplotlib.ticker import MultipleLocator
 
-Set2 = plt.get_cmap('Set2')
+Cmap = plt.get_cmap('tab20')
+locator = MultipleLocator(base = 0.5, offset= 0.0)
 
 # # Folder path containing the .mpt files ** windows **
 # folder_path = r'C:\Users\Elliot\SynologyDrive\Research - Elliot Howell\Durbis CV Measurements\TPB-OMe\DCM\To Use\vsFc'
@@ -85,7 +87,7 @@ else:
 
     # now creating plot of stacked reps without first cycle
 title = analyte + ' versus ' + refElec + ' at a scan rate of ' + figScanRate.decode('utf-8') + " " + figScanUnit.decode('utf-8')
-plt.figure()
+plt.figure(figsize=(10, 6))
 plt.title(title)
 plt.xlabel('Potential (V vs. ' + refElec + ')')
 plt.ylabel('Current (\u03BCA)')
@@ -94,8 +96,10 @@ plt.ylabel('Current (\u03BCA)')
 
 figCurr = figure_data['<I>/mA'] * 1000
 
+plt.axis.XAxis.set_major_locator(locator)
+
 # plt.plot(blankPot, blankCurr, label = "Blank")
-plt.plot(figPot, figCurr, label = "Compound", color = Set2(0))
+plt.plot(figPot, figCurr, label = "Compound", c = Cmap(0))
 
 plt.savefig(saveLoc + '/' + analyte + 'lastCyclevsFc' + '.tif', dpi = 300, bbox_inches = 'tight')
 
