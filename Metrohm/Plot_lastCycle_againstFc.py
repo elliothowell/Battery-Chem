@@ -10,6 +10,10 @@ import matplotlib.pyplot as plt
 import os
 import numpy as np
 from scipy.signal import savgol_filter
+from matplotlib.ticker import MultipleLocator
+
+Cmap = plt.get_cmap('tab20')
+locator = MultipleLocator(base = 0.5, offset= 0.0)
 
 def apply_savgol_filter(data, window_length=2, polyorder=1):
     """ Apply Savitzky-Golay filter to smooth the data. """
@@ -107,15 +111,15 @@ def plot_and_save_cycles(folder_path, plot_all_cycles, fc_potential, save_figure
         else:
             cycles = [last_cycle] if last_cycle is not None else []
         
-        plt.figure(figsize=(10, 6))
+        plt.figure()#figsize=(10, 6))
         num = 1
         for cycle in cycles:
             smoothed_current = (1*10**6) * apply_savgol_filter(cycle['WE.Current (A)'])
             potential_vsFc = cycle['Potential applied (V)'] - fc_potential
             if plot_all_cycles:    
-                plt.plot(potential_vsFc, smoothed_current, label='Cycle ' + str(num), alpha=0.5)
+                plt.plot(potential_vsFc, smoothed_current, label='Cycle ' + str(num), c = Cmap(0))
             else:
-                plt.plot(potential_vsFc, smoothed_current, alpha=0.5)
+                plt.plot(potential_vsFc, smoothed_current, c = Cmap(num-1))
             num += 1
         
         # if blank_files:
@@ -132,11 +136,12 @@ def plot_and_save_cycles(folder_path, plot_all_cycles, fc_potential, save_figure
         if plot_all_cycles:
             plt.legend()
         if save_figures:
-            plt.savefig(os.path.join(fc_folder, f'{"All_Cycles" if plot_all_cycles else "Last_Cycle"}_versus_Fc_{file}.png'))
+            plt.savefig(os.path.join(fc_folder, f'{"All_Cycles" if plot_all_cycles else "Last_Cycle"}_versus_Fc_{file}.png'), 
+                        dpi = 300, bbox_inches = 'tight')
         plt.show()
 
 # Usage
-folder_path = r'C:\Users\Elliot\SynologyDrive\Research - Elliot Howell\Durbis CV Measurements\0 - To use\DCM Solvent\14-PTH'
+folder_path = r'C:\Users\Elliot\SynologyDrive\Research - Elliot Howell\Durbis CV Measurements\0 - To use\ACN Solvent\8-TC-TPA'
 user_input_cycles = input("Plot all cycles? (y/n): ").strip().lower()
 plot_all_cycles = True if user_input_cycles == 'y' else False
 # user_input_blanks = input("Plot only if blank is associated? (y/n): ").strip().lower()

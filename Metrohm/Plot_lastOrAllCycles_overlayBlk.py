@@ -125,11 +125,12 @@ def plot_and_save_cycles(folder_path, plot_all_cycles, plot_only_with_blanks, sa
         plt.title(f'{"All Cycles" if plot_all_cycles else "Last Cycle"} with Last Blank Cycle for {file}')
         plt.legend()
         if save_figures:
-            plt.savefig(os.path.join(figures_folder, f'{"All_Cycles" if plot_all_cycles else "Last_Cycle"}_with_Last_Blank_{file}.png'))
+            plt.savefig(os.path.join(figures_folder, f'{"All_Cycles" if plot_all_cycles else "Last_Cycle"}_with_Last_Blank_{file}.png'), 
+                        dpi = 300, bbox_inches = 'tight')
         plt.show()
 
 # Usage
-folder_path = r'C:\Users\Elliot\SynologyDrive\Research - Elliot Howell\Durbis CV Measurements\0 - To use\11-MPTPA'
+folder_path = r'C:\Users\Elliot\SynologyDrive\Research - Elliot Howell\Durbis CV Measurements\0 - To use\DCM Solvent\0-TPA'
 user_input_cycles = input("Plot all cycles? (y/n): ").strip().lower()
 plot_all_cycles = True if user_input_cycles == 'y' else False
 user_input_blanks = input("Plot only if blank is associated? (y/n): ").strip().lower()
