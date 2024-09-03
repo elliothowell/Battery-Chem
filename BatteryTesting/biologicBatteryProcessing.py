@@ -17,6 +17,10 @@ import matplotlib.dates as mdates
 import pandas as pd
 import datetime as dt
 import numpy as np
+from matplotlib import cm
+ 
+blues = cm.get_cmap("Blues", 5)
+reds = cm.get_cmap("Reds", 5)
 
 def bio_file_reader(bio_file):
     
@@ -49,5 +53,41 @@ def bio_file_reader(bio_file):
     
     return read_file
 
-def plot_battery(batteryDF):
+def plot_battery(battery_file):
     
+    #file_path = os.path.join(folderPath, file)
+    
+    #make a dataframe of the file
+    fileDF = bio_file_reader(battery_file)
+    
+    #list for column names
+    colNames = fileDF.columns
+    print(colNames[25])
+    ### [11] == potential, [19] == current, [21] == discharge cap, 
+    ### [22] == charge cap, [24] == cycle, [25] == state
+    
+    #making charge/discharge DF
+    chargeDF = fileDF[fileDF[colNames[25]] == 'charge']
+    dischargeDF = fileDF[fileDF[colNames[25]] == 'discharge']
+    
+    
+    #first making the figure
+    figCap, axCap = plt.subplots(figsize = (10, 6), layout = 'constrained')
+    
+    for i in range(1, max(fileDF['cycle'])+1):
+        charge = chargeDF.loc[chargeDF[colNames[24]] == i, colNames[22]]
+        potCharge = chargeDF.loc[chargeDF[colNames[24]] == i, colNames[11]]
+        discharge = dischargeDF.loc[dischargeDF[colNames[24]] == i, colNames[21]]
+        potDischarge = dischargeDF.loc[dischargeDF[colNames[24]] == i, colNames[11]]
+    
+        axCap.plot(charge, potCharge, label = 'Charge Cycle ' + str(i), c = blues(i))
+        axCap.plot(discharge, potDischarge, label = 'Discharge Cycle ' + str(i), c = reds(i))
+        
+    axCap.set_xlabel('Capacity (mAh)') 
+    axCap.set_ylabel('Potential (V)')
+    figCap.legend(loc = 'outside right upper')
+    axCap.set_title('Charge/Discharge Capacities')
+    
+    
+file = '/Users/elliothowell/SynologyDrive/Research - Elliot Howell/UQAM - Battery/Coin Cells/2024-05-06_LiSbF6_LFP_HalfCells/354EH2/354EH2_FullCycling_06_GCPL_C03.txt'
+
