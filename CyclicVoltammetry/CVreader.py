@@ -154,6 +154,7 @@ def cv_plotAndSave(folderPath, fcPot, saveFigs):
         axStack.set_ylabel('Current ($\mu$A)')
         axStack.legend()
         axStack.set_title(f'All cycles for {file}')
+        plt.draw()
         
         if saveFigs:    
             figStack.savefig(os.path.join(figFolder, f'All_Cycles_{file}.tif'), 
@@ -165,14 +166,22 @@ def cv_plotAndSave(folderPath, fcPot, saveFigs):
         axLast.set_xlabel(f'Potential (vs {"Fc/$Fc^+$" if fcPot is not None else "Ag/AgCl"})') 
         axLast.set_ylabel('Current ($\mu$A)')
         axLast.set_title(f'Last cycle for {file}')
+        plt.draw()
         
         if saveFigs:    
             figLast.savefig(os.path.join(figFolder, f'Last_Cycle_{file}.tif'), 
                         dpi = 300, bbox_inches = 'tight')
-        
+
+folder_path = r'C:\Users\Elliot\SynologyDrive\Research - Elliot Howell\Durbis CV Measurements\0 - To use\ACN Solvent\0-TPA'
+user_input_save = input("Save figures? (y/n): ").strip().lower()
+save_figures = True if user_input_save == 'y' else False
+user_input_FcPot = float(input("Ferrocene Potential: "))
+fc_potential = user_input_FcPot if user_input_FcPot != 0 else 0.00
+
+cv_plotAndSave(folder_path, fc_potential, save_figures)
+
 # def plotAllCycles(dataFrame):
     
-
 # def plotLastCycle(dataFrame):
 
 
