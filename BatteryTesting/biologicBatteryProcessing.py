@@ -88,6 +88,8 @@ def plot_battery(battery_file):
     figCap.legend(loc = 'outside right upper')
     axCap.set_title('Charge/Discharge Capacities')
     
+    figCap.show()
     
-file = '/Users/elliothowell/SynologyDrive/Research - Elliot Howell/UQAM - Battery/Coin Cells/2024-05-06_LiSbF6_LFP_HalfCells/354EH2/354EH2_FullCycling_06_GCPL_C03.txt'
+file = 'C:/Users/Elliot/SynologyDrive/Research - Elliot Howell/UQAM - Battery/Coin Cells/2024-08-16_CellReruns/358EH17-1/358EH17-1_Retest_Co20-Co2_01_GCPL_C09.txt'
 
+plot_battery(file)
